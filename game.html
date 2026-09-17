@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>小队远征 · 放置RPG</title>
+<style>
+:root { --bg:#0d1b2a; --panel:#16263a; --line:#2a3f58; --gold:#ffd76e; --txt:#dbe7f3; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { background:var(--bg); color:var(--txt); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+button { font-family:inherit; }
+#app { max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+#topbar { display:flex; justify-content:space-around; padding:12px 8px; background:var(--panel);
+  border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; font-size:14px; }
+#topbar b { color:var(--gold); font-size:16px; }
+#content { flex:1; padding:14px; padding-bottom:80px; }
+.tab-page { display:none; }
+.tab-page:first-of-type { display:block; }
+#adv-card { background:linear-gradient(160deg,#1b3350,#12253c); border:1px solid var(--line);
+  border-radius:14px; padding:20px 16px; text-align:center; margin-bottom:12px; }
+#adv-title { font-size:20px; font-weight:700; margin-bottom:10px; }
+#adv-foes { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:10px; }
+.foe-chip { background:rgba(255,255,255,.08); border-radius:12px; padding:3px 10px; font-size:13px; }
+#adv-power { font-size:14px; margin-bottom:16px; }
+#adv-power b { color:var(--gold); }
+.tag { font-size:12px; padding:2px 8px; border-radius:8px; }
+.tag.win { background:#1d5c38; color:#7fe0a8; }
+.tag.lose { background:#5c2a1d; color:#ff9d7f; }
+.big-btn { display:block; width:100%; border:none; border-radius:14px; padding:16px;
+  font-size:19px; font-weight:800; letter-spacing:3px; margin-bottom:10px; cursor:pointer; }
+#btn-fight { background:linear-gradient(135deg,#ff9d3c,#ff5f4d); color:#fff;
+  box-shadow:0 4px 16px rgba(255,110,70,.35); }
+#btn-sweep { background:#24405f; color:var(--txt); font-size:15px; font-weight:600; letter-spacing:0; }
+.big-btn:active { transform:scale(.97); }
+.hero-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px; }
+.hero-head { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.hero-icon { font-size:34px; }
+.hero-head .cls { display:block; font-size:12px; color:#8fa8c0; }
+.lv { margin-left:auto; background:#24405f; padding:3px 10px; border-radius:10px; font-size:13px; color:var(--gold); }
+.hero-stats { font-size:13px; color:#a9c2d8; margin-bottom:8px; }
+.slots { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.slot { border:1px solid var(--line); border-left-width:4px; border-radius:8px; padding:6px 8px; font-size:12px; }
+.slot.empty { opacity:.55; }
+.slot-name { font-weight:600; }
+.slot-stat { color:#8fa8c0; margin:2px 0; }
+.enh { color:var(--gold); }
+.mini { background:#24405f; color:var(--txt); border:none; border-radius:8px; padding:5px 10px;
+  font-size:12px; cursor:pointer; margin-right:6px; }
+.mini.sell { background:#3a2a44; }
+.mini:disabled { opacity:.4; }
+.lvup { width:100%; background:linear-gradient(135deg,#3f8f5f,#2c6b46); color:#fff; border:none;
+  border-radius:10px; padding:10px; font-weight:700; cursor:pointer; }
+.lvup:disabled { opacity:.4; }
+#bag-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+#bag-count { font-size:13px; color:#8fa8c0; }
+.item-row { display:flex; align-items:center; background:var(--panel); border:1px solid var(--line);
+  border-left-width:4px; border-radius:10px; padding:10px; margin-bottom:8px; }
+.item-info { flex:1; font-size:14px; }
+.item-slot { font-size:12px; color:#8fa8c0; margin-left:8px; }
+.item-stat { font-size:12px; color:#a9c2d8; margin-top:2px; }
+.item-btns { display:flex; flex-direction:column; gap:6px; }
+.empty-tip { text-align:center; color:#8fa8c0; padding:30px 0; font-size:14px; line-height:2; }
+#tabbar { position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto;
+  display:flex; background:var(--panel); border-top:1px solid var(--line); z-index:5; }
+.tab-btn { flex:1; background:none; border:none; color:#8fa8c0; padding:12px 0 14px; font-size:13px; cursor:pointer; }
+.tab-btn.active { color:var(--gold); font-weight:700; }
+#battle-screen { position:fixed; inset:0; background:radial-gradient(ellipse at 50% 30%,#173a5c,#0a1626);
+  z-index:20; display:flex; flex-direction:column; }
+#battle-screen.hidden { display:none; }
+#battle-title { text-align:center; padding:16px; font-weight:700; color:var(--gold); }
+#battle-field { flex:1; position:relative; overflow:hidden; }
+.unit { position:absolute; transform:translateX(-50%); text-align:center; width:64px; transition:filter .3s; }
+.unit.dead { filter:grayscale(1) opacity(.35); }
+.u-name { font-size:11px; color:#a9c2d8; white-space:nowrap; margin-bottom:2px; }
+.hpbar { width:56px; height:5px; background:#0008; border-radius:3px; margin:0 auto 3px; overflow:hidden; }
+.hpfill { height:100%; background:linear-gradient(90deg,#5fd07f,#a7e8a0); transition:width .2s; }
+.foe .hpfill { background:linear-gradient(90deg,#e05f5f,#e8a0a0); }
+.u-icon { font-size:40px; filter:drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.floater { position:absolute; left:50%; top:-4px; transform:translateX(-50%); font-weight:800; font-size:16px;
+  animation:floatup 1.1s ease-out forwards; pointer-events:none; white-space:nowrap; }
+.floater.dmg { color:#fff; text-shadow:0 1px 3px #000; }
+.floater.crit { color:#ff5544; font-size:21px; text-shadow:0 0 8px #ff2200; }
+.floater.heal { color:#7fe0a8; }
+.floater.skill { color:#7fc9ff; font-size:14px; top:-22px; }
+@keyframes floatup { from{opacity:1; transform:translate(-50%,0);} to{opacity:0; transform:translate(-50%,-46px);} }
+#battle-bottom { padding:14px; }
+#battle-log { text-align:center; font-size:13px; color:#8fa8c0; margin-bottom:10px; min-height:18px; }
+#btn-skip { width:100%; background:linear-gradient(135deg,#3c6ea5,#2a4d78); color:#fff; border:none;
+  border-radius:12px; padding:13px; font-size:16px; font-weight:700; cursor:pointer; }
+.modal { position:fixed; inset:0; background:rgba(5,12,22,.78); z-index:30; display:flex;
+  align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(4px); }
+.modal.hidden { display:none; }
+.modal-box { background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  width:100%; max-width:400px; max-height:80vh; overflow-y:auto; padding:18px; }
+#result-title { text-align:center; font-size:22px; margin-bottom:12px; }
+#result-title.win { color:#7fe0a8; }
+#result-title.lose { color:#ff8f7f; }
+.gold-line { text-align:center; color:var(--gold); font-weight:700; margin-bottom:10px; }
+.modal-close-row { display:flex; gap:10px; margin-top:14px; }
+.modal-close-row button { flex:1; background:#24405f; color:var(--txt); border:none; border-radius:10px;
+  padding:12px; font-weight:700; cursor:pointer; }
+#equip-item-info { text-align:center; margin-bottom:12px; line-height:1.8; }
+.hero-pick { display:flex; justify-content:space-between; align-items:center; width:100%;
+  background:#1b3350; border:1px solid var(--line); color:var(--txt); border-radius:10px;
+  padding:11px 14px; margin-bottom:8px; cursor:pointer; font-size:15px; }
+.hero-pick small { color:#8fa8c0; font-size:12px; }
+#toasts { position:fixed; top:60px; left:0; right:0; display:flex; flex-direction:column;
+  align-items:center; gap:8px; z-index:50; pointer-events:none; }
+.toast { background:rgba(20,35,55,.95); border:1px solid var(--line); color:var(--txt);
+  padding:9px 18px; border-radius:20px; font-size:14px; opacity:0; transition:all .3s; }
+.toast.show { opacity:1; }
+#btn-reset { background:none; border:1px solid var(--line); color:#8fa8c0; border-radius:10px;
+  padding:8px; width:100%; margin-top:8px; cursor:pointer; font-size:13px; }
+/* 竞技场 */
+.arena-login { max-width:320px; margin:30px auto; text-align:center; }
+.arena-login h3 { font-size:22px; margin-bottom:10px; }
+.arena-tip { color:#8fa8c0; font-size:13px; line-height:1.8; margin-bottom:16px; }
+.arena-login input { display:block; width:100%; background:var(--panel); border:1px solid var(--line);
+  color:var(--txt); border-radius:10px; padding:12px 14px; font-size:15px; margin-bottom:10px; outline:none; }
+.arena-head { background:linear-gradient(160deg,#1b3350,#12253c); border:1px solid var(--line);
+  border-radius:12px; padding:14px; margin-bottom:14px; font-size:15px; }
+.arena-sub { font-size:12px; color:#8fa8c0; margin:4px 0 8px; }
+.arena-btns { display:flex; flex-wrap:wrap; gap:4px; }
+.arena-h { margin:14px 0 8px; font-size:15px; color:var(--gold); }
+.opp-row { display:flex; align-items:center; gap:8px; background:var(--panel);
+  border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+.opp-row > div { flex:1; }
+.opp-sub { display:block; font-size:12px; color:#8fa8c0; }
+.board-row { display:flex; align-items:center; gap:10px; padding:8px 10px; font-size:14px;
+  border-bottom:1px solid rgba(255,255,255,.05); }
+.board-row.me { background:rgba(255,215,110,.08); border-radius:8px; }
+.board-row .rk { color:var(--gold); width:38px; font-weight:700; }
+.board-row b { flex:1; }
+.board-row .pts { color:var(--gold); font-weight:700; }
+
+/* 召唤 */
+#sum-tickets-line { text-align:center; font-size:18px; margin-bottom:12px; }
+#sum-tickets { color:var(--gold); font-size:28px; font-weight:800; }
+.sum-btns { display:flex; gap:10px; margin-bottom:14px; }
+.sum-btns .big-btn { margin-bottom:0; }
+#btn-pull-1 { background:linear-gradient(135deg,#3c6ea5,#2a4d78); color:#fff; font-size:17px; letter-spacing:1px; }
+#btn-pull-10 { background:linear-gradient(135deg,#ffb347,#ff7e5f); color:#fff; font-size:17px; letter-spacing:1px; }
+#sum-tut { background:rgba(255,215,110,.08); border:1px dashed rgba(255,215,110,.4);
+  border-radius:12px; padding:14px; font-size:14px; line-height:2; margin-bottom:14px; }
+#sum-tut b { color:var(--gold); }
+#sum-overview { display:flex; gap:6px; margin-bottom:14px; }
+.sum-slot { flex:1; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:10px 4px; text-align:center; font-size:12px; }
+.sum-slot .brk { display:block; color:var(--gold); margin-top:3px; font-size:11px; }
+.sum-slot .brk-prog { display:block; color:#8fa8c0; font-size:10px; }
+.sum-slot.locked { opacity:.45; }
+#sum-results { display:flex; flex-wrap:wrap; gap:8px; min-height:90px; }
+.sum-card { width:62px; background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:10px 2px; text-align:center; font-size:12px; animation:pop .35s backwards; }
+.sum-card.new { border-color:#7fe0a8; box-shadow:0 0 12px rgba(127,224,168,.35); }
+.sum-card.brk { border-color:#4da3ff; }
+.sum-card.awaken { border-color:#ffa726; box-shadow:0 0 14px rgba(255,167,38,.55); }
+.sum-icon { font-size:30px; }
+.sum-tag { display:block; font-size:10px; font-weight:700; }
+.sum-tag.new { color:#7fe0a8; }
+.sum-tag.brk { color:#4da3ff; }
+.sum-tag.awaken { color:#ffa726; }
+@keyframes pop { from{ transform:scale(.3); opacity:0;} to{ transform:scale(1); opacity:1;} }
+/* 队伍 V2 */
+#team-chips { margin-bottom:12px; font-size:13px; }
+.chip { display:inline-block; background:#24405f; border-radius:12px; padding:3px 10px; margin:2px 3px; }
+.chip.none { opacity:.5; }
+.hero-card.locked { opacity:.6; }
+.stars { font-size:11px; color:#8fa8c0; line-height:1.9; }
+.brk-line { font-size:13px; margin-bottom:6px; color:#a9c2d8; }
+.brk-line b { color:var(--gold); }
+.awake-tag { color:#ffa726; }
+.hero-btns { display:flex; gap:6px; align-items:center; }
+.hero-btns .lvup { flex:1; margin:0; }
+.ticket-line { text-align:center; color:#7fc9ff; font-weight:700; margin-bottom:10px; }
+.floater.miss { color:#9fd8ff; font-size:14px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <span>💰 <b id="hud-gold">0</b></span>
+    <span>⚔️ <b id="hud-power">0</b></span>
+    <span>🚩 <b id="hud-stage">1</b></span>
+    <span>🎟️ <b id="hud-tickets">0</b></span>
+  </div>
+  <div id="content">
+    <div class="tab-page" id="tab-adventure">
+      <div id="adv-card">
+        <div id="adv-title"></div>
+        <div id="adv-foes"></div>
+        <div id="adv-power"></div>
+        <button class="big-btn" id="btn-fight">⚔️ 开始挑战</button>
+        <button class="big-btn" id="btn-sweep">⚡ 扫荡</button>
+      </div>
+    </div>
+    <div class="tab-page" id="tab-team">
+      <div id="team-chips"></div>
+      <div id="team-list"></div>
+      <button class="big-btn" id="btn-auto-equip" style="background:#24405f;color:var(--txt);font-size:15px;letter-spacing:0;">✨ 一键穿戴最强装备</button>
+      <button id="btn-reset">🗑️ 重置存档</button>
+    </div>
+    <div class="tab-page" id="tab-bag">
+      <div id="bag-head"><b>🎒 背包</b><span id="bag-count"></span></div>
+      <div id="bag-list"></div>
+    </div>
+    <div class="tab-page" id="tab-summon">
+      <div id="sum-tut">🎓 <b>召唤教程</b>：你有 <b>50</b> 张召唤卷（新手赠送）！<br>
+      · 每次召唤随机获得一名英雄，重复获得会转化为「魂」<br>
+      · 魂攒满即<b>突破</b>（基础属性+8%），10 阶可<b>🌟觉醒</b>（全属性大幅提升）<br>
+      · 闯关有 3% 概率掉落召唤卷，首领关必掉！</div>
+      <div id="sum-tickets-line">🎟️ 召唤卷 × <span id="sum-tickets">0</span></div>
+      <div class="sum-btns">
+        <button class="big-btn" id="btn-pull-1">✨ 单抽</button>
+        <button class="big-btn" id="btn-pull-10">🔥 十连抽</button>
+      </div>
+      <div id="sum-overview"></div>
+      <div id="sum-results"></div>
+    </div>
+    <div class="tab-page" id="tab-arena"></div>
+  </div>
+  <div id="tabbar">
+    <button class="tab-btn active" data-tab="adventure">🗺️ 冒险</button>
+    <button class="tab-btn" data-tab="team">👥 队伍</button>
+    <button class="tab-btn" data-tab="bag">🎒 背包</button>
+    <button class="tab-btn" data-tab="summon">🎰 召唤</button>
+    <button class="tab-btn" data-tab="arena">🏟️ 竞技</button>
+  </div>
+</div>
+
+<div id="battle-screen" class="hidden">
+  <div id="battle-title"></div>
+  <div id="battle-field"></div>
+  <div id="battle-bottom">
+    <div id="battle-log"></div>
+    <button id="btn-skip">⏩ 跳过战斗，直接看结果</button>
+  </div>
+</div>
+
+<div id="result-modal" class="modal hidden">
+  <div class="modal-box">
+    <div id="result-title"></div>
+    <div id="result-body"></div>
+    <div class="modal-close-row"><button id="result-close">继续</button></div>
+  </div>
+</div>
+
+<div id="equip-modal" class="modal hidden">
+  <div class="modal-box">
+    <div id="equip-item-info"></div>
+    <div id="equip-heroes"></div>
+    <div class="modal-close-row"><button id="equip-modal-close">取消</button></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+// ================= 小队远征 V2 · 纯逻辑（抽卡/突破/职业装备/回避） =================
+const CLASSES = [
+  {id:'soldier', cls:'士兵', icon:'⚔️', role:'dps',  skillName:'顺劈斩',
+   stars:{hp:3,atk:2,def:2,eva:1,crit:2}, desc:'均衡近战，前线输出'},
+  {id:'knight',  cls:'骑士', icon:'🛡️', role:'tank', skillName:'盾墙',
+   stars:{hp:3,atk:1,def:4,eva:1,crit:1}, desc:'铜墙铁壁，嘲讽护队'},
+  {id:'rogue',   cls:'刺客', icon:'🗡️', role:'dps',  skillName:'暗影打击',
+   stars:{hp:1,atk:2,def:1,eva:3,crit:2}, desc:'高闪避，暴击爆发'},
+  {id:'mage',    cls:'法师', icon:'🔮', role:'dps',  skillName:'烈焰风暴',
+   stars:{hp:1,atk:3,def:1,eva:2,crit:2}, desc:'烈焰横扫全体敌人'},
+  {id:'priest',  cls:'牧师', icon:'✨', role:'heal', skillName:'治疗术',
+   stars:{hp:4,atk:1,def:1,eva:1,crit:2}, desc:'圣光治愈最虚弱队友'},
+];
+const CLASS_MAP = {}; CLASSES.forEach(c=>CLASS_MAP[c.id]=c);
+
+const STAR_HP   = [0,100,145,195,260];
+const STAR_ATK  = [0,16,24,34,46];
+const STAR_DEF  = [0,3,7,12,20];
+const STAR_EVA  = [0,5,10,18,28];
+const STAR_CRIT = [0,5,15,25,35];
+
+const FOE_DEFS = {
+  orc:     {name:'兽人步兵',   icon:'👹', hp:120, atk:16, def:6,  eva:0, crit:5,  speed:0.9, skill:'smash'},
+  troll:   {name:'巨魔射手',   icon:'🏹', hp:85,  atk:22, def:3,  eva:5, crit:12, speed:1.1, skill:'double'},
+  warlock: {name:'邪能术士',   icon:'🔥', hp:75,  atk:26, def:2,  eva:5, crit:8,  speed:0.9, skill:'bolt'},
+  ogre:    {name:'食人魔之王', icon:'👿', hp:420, atk:30, def:8,  eva:0, crit:10, speed:0.7, skill:'quake'},
+};
+
+const RARITY = [
+  {k:'common', name:'普通', c:'#9fb2c0', mul:1.0,  w:55},
+  {k:'fine',   name:'优秀', c:'#4da3ff', mul:1.35, w:30},
+  {k:'epic',   name:'史诗', c:'#b26bff', mul:1.8,  w:12},
+  {k:'legend', name:'传说', c:'#ffa726', mul:2.4,  w:3},
+];
+
+const SLOT_NAMES = {weapon:'武器', armor:'防具', trinket:'饰品'};
+const CLS_ITEMS = {
+  soldier:{weapon:['制式长剑','精钢巨剑','屠龙之刃'], armor:['士兵铠甲','征战胸甲'], trinket:['士兵徽记','勇气护符']},
+  knight: {weapon:['骑士重锤','审判之剑'],            armor:['塔盾重铠','圣殿铠甲'], trinket:['守护指环','壁垒之心']},
+  rogue:  {weapon:['淬毒匕首','暗影双刃'],            armor:['潜行皮甲','夜行衣'],   trinket:['刺客印记','影踪坠饰']},
+  mage:   {weapon:['奥术法杖','烈焰法典'],            armor:['法师长袍','秘术斗篷'], trinket:['魔力水晶','元素宝珠']},
+  priest: {weapon:['神圣权杖','治愈圣典'],            armor:['牧师长袍','圣职法衣'], trinket:['圣光吊坠','祈祷珠串']},
+};
+
+let _uid = 1;
+function rnd(a,b){ return a + Math.random()*(b-a); }
+function ri(a,b){ return Math.floor(rnd(a,b+1)); }
+
+function newEntry(id){
+  return { id, level:1, brk:0, shards:0, awake:false, nick:CLASS_MAP[id].cls,
+           equip:{weapon:null, armor:null, trinket:null} };
+}
+
+function newGame(){
+  return { ver:2, gold:120, stage:1, wins:0, tickets:50, tutGacha:false,
+           collection:{}, team:[], bag:[] };
+}
+
+// ---------- 存档迁移（V1 -> V2） ----------
+function migrate(g){
+  if (!g) return newGame();
+  if (g.collection) { g.team = (g.team||[]).filter(id=>g.collection[id]); if(!g.team.length && Object.keys(g.collection).length) g.team = Object.keys(g.collection).slice(0,5); return g; }
+  const OLD = {warrior:'soldier', tank:'knight', rogue:'rogue', mage:'mage', priest:'priest'};
+  const ng = newGame();
+  ng.gold = g.gold||120; ng.stage = g.stage||1; ng.wins = g.wins||0;
+  ng.tickets = 50; // 版本更新补偿
+  for (const h of (g.heroes||[])){
+    const id = OLD[h.id]; if (!id || ng.collection[id]) continue;
+    const e = newEntry(id);
+    e.level = h.level||1;
+    for (const slot of ['weapon','armor','trinket']){
+      const it = h.equip && h.equip[slot];
+      if (it){ it.cls = id; e.equip[slot] = it; }
+    }
+    ng.collection[id] = e; ng.team.push(id);
+  }
+  ng.bag = (g.bag||[]).map(it => { if (!it.cls) it.cls = CLASSES[ri(0,4)].id; return it; });
+  return ng;
+}
+
+// ---------- 抽卡 ----------
+function gachaPull(g){
+  if (g.tickets < 1) return {ok:false, msg:'召唤卷不足，去闯关获取吧'};
+  g.tickets--; g.tutGacha = true;
+  const c = CLASSES[ri(0,4)];
+  let isNew=false, brkUp=false, awake=false;
+  if (!g.collection[c.id]){
+    g.collection[c.id] = newEntry(c.id);
+    isNew = true;
+    if (g.team.length < 5) g.team.push(c.id);
+  } else {
+    const e = g.collection[c.id];
+    e.shards++;
+    const need = brkNeed(e);
+    if (e.shards >= need && e.brk < 10){
+      e.shards -= need; e.brk++; brkUp = true;
+      if (e.brk >= 10 && !e.awake){ e.awake = true; awake = true; }
+    }
+  }
+  return {ok:true, id:c.id, name:c.cls, icon:c.icon, isNew, brkUp, awake};
+}
+function gachaTen(g){ const out=[]; for(let i=0;i<10;i++){ const r=gachaPull(g); if(!r.ok) break; out.push(r);} return out; }
+
+function brkNeed(e){ return e.brk >= 10 ? 0 : e.brk + 2; }
+
+// ---------- 队伍 ----------
+function getTeam(g){ g = migrate(g); return g.team.map(id=>g.collection[id]).filter(Boolean); }
+function toggleTeam(g, id){
+  const i = g.team.indexOf(id);
+  if (i >= 0){ if (g.team.length <= 1) return {ok:false,msg:'至少保留1名上阵英雄'}; g.team.splice(i,1); return {ok:true,msg:'已下阵'}; }
+  if (!g.collection[id]) return {ok:false,msg:'尚未解锁该职业'};
+  if (g.team.length >= 5) return {ok:false,msg:'最多上阵5名英雄'};
+  g.team.push(id); return {ok:true,msg:'已上阵'};
+}
+
+// ---------- 属性 ----------
+function heroStats(e){
+  const c = CLASS_MAP[e.id];
+  const lv = e.level - 1;
+  const bm = (1 + 0.08*e.brk) * (e.awake ? 1.25 : 1);
+  const s = {
+    hp:   STAR_HP[c.stars.hp]  * (1+0.09*lv) * bm,
+    atk:  STAR_ATK[c.stars.atk]* (1+0.07*lv) * bm,
+    def:  STAR_DEF[c.stars.def]* (1+0.06*lv) * bm,
+    eva:  STAR_EVA[c.stars.eva] + (e.awake ? 5 : 0),
+    crit: STAR_CRIT[c.stars.crit],
+    speed: 1.0,
+  };
+  for (const slot of ['weapon','armor','trinket']){
+    const it = e.equip[slot];
+    if (it){
+      const m = 1 + 0.08*(it.enh||0);
+      s.atk  += (it.atk  || 0)*m;
+      s.hp   += (it.hp   || 0)*m;
+      s.def  += (it.def  || 0)*m;
+      s.crit += (it.crit || 0)*m;
+      s.eva  += (it.eva  || 0)*m;
+    }
+  }
+  s.maxhp = Math.round(s.hp);
+  return s;
+}
+function unitPower(s){ return Math.round(s.atk*4 + s.maxhp*0.35 + s.def*2.5 + s.crit*3 + s.eva*3); }
+function teamPower(g){ return getTeam(g).reduce((sum,e)=>sum+unitPower(heroStats(e)),0); }
+
+function levelCost(level){ return Math.round(22 * Math.pow(level, 1.5)); }
+function upgradeHero(g, id){
+  const e = g.collection[id]; if (!e) return {ok:false,msg:'未解锁'};
+  const cost = levelCost(e.level);
+  if (g.gold < cost) return {ok:false, msg:'金币不足'};
+  g.gold -= cost; e.level++;
+  return {ok:true, msg:`升级成功！${e.nick} 现在是 ${e.level} 级`};
+}
+function renameHero(g, id, nick){
+  const e = g.collection[id]; if (!e) return {ok:false};
+  e.nick = (nick||'').trim().slice(0,8) || CLASS_MAP[id].cls;
+  return {ok:true};
+}
+
+// ---------- 装备 ----------
+function rollRarity(stage){
+  let w = RARITY.map(r => r.w);
+  w[3] += Math.min(stage*0.35, 8);
+  w[0] = Math.max(w[0] - stage*0.5, 30);
+  const total = w.reduce((a,b)=>a+b,0);
+  let roll = Math.random()*total;
+  for (let i=0;i<w.length;i++){ if (roll < w[i]) return RARITY[i]; roll -= w[i]; }
+  return RARITY[0];
+}
+
+function genItem(stage, forceRarity, forceCls){
+  const rarity = forceRarity || rollRarity(stage);
+  const cls = forceCls || CLASSES[ri(0,4)].id;
+  const slots = ['weapon','armor','trinket'];
+  const slot = slots[ri(0,2)];
+  const base = 4 + stage * 2.1;
+  const it = { uid:_uid++, slot, cls, rarity:rarity.k, rarityName:rarity.name, color:rarity.c,
+               atk:0, hp:0, def:0, crit:0, eva:0 };
+  const m = rarity.mul * rnd(0.9, 1.25);
+  if (slot==='weapon'){ it.atk = Math.round(base*m); if (cls==='rogue'||cls==='knight') it.crit = Math.round(rnd(4,10)*rarity.mul); }
+  else if (slot==='armor'){ it.hp = Math.round(base*5.5*m); it.def = Math.round(base*0.55*m); if (cls==='rogue') it.eva = Math.round(rnd(4,8)*rarity.mul); }
+  else { it.atk = Math.round(base*0.6*m); it.hp = Math.round(base*2.2*m); it.crit = Math.round(rnd(6,14)*rarity.mul); if (cls==='rogue') it.eva = Math.round(rnd(4,8)*rarity.mul); }
+  const pool = CLS_ITEMS[cls][slot];
+  it.name = rarity.name + '·' + pool[ri(0,pool.length-1)];
+  it.power = Math.round(it.atk*4 + it.hp*0.35 + it.def*2.5 + it.crit*3 + it.eva*3);
+  it.price = Math.max(5, Math.round(it.power*1.5));
+  it.enh = 0;
+  return it;
+}
+
+function lootFor(stage, isBoss){
+  const n = isBoss ? 4 : ri(2,3);
+  const items = [];
+  for (let i=0;i<n;i++){
+    if (isBoss && i===0) items.push(genItem(stage, RARITY[ri(2,3)]));
+    else items.push(genItem(stage));
+  }
+  return items;
+}
+function goldFor(stage){ return Math.round(25 + stage*14 + rnd(0, stage*5)); }
+function ticketDrops(stage, isBoss){
+  let n = 0;
+  if (isBoss){ n = 1 + (Math.random()<0.35?1:0); }
+  else if (Math.random() < 0.03) n = 1;
+  return n;
+}
+
+function equipItem(g, clsId, uid){
+  const e = g.collection[clsId]; if (!e) return {ok:false, msg:'未解锁该职业'};
+  const i = g.bag.findIndex(x=>x.uid===uid);
+  if (i<0) return {ok:false, msg:'物品不存在'};
+  const it = g.bag[i];
+  if (it.cls !== clsId) return {ok:false, msg:`职业不符：${it.name} 只能给${CLASS_MAP[it.cls].cls}使用`};
+  g.bag.splice(i,1);
+  const old = e.equip[it.slot];
+  e.equip[it.slot] = it;
+  if (old) g.bag.push(old);
+  return {ok:true, msg:`${it.name} 已装备`, old};
+}
+function autoEquip(g){
+  let changed = 0;
+  for (const id in g.collection){
+    const e = g.collection[id];
+    for (const slot of ['weapon','armor','trinket']){
+      const cur = e.equip[slot];
+      const best = g.bag.filter(it=>it.slot===slot && it.cls===id).sort((a,b)=>b.power-a.power)[0];
+      if (best && (!cur || best.power > cur.power)){ equipItem(g, id, best.uid); changed++; }
+    }
+  }
+  return changed;
+}
+function sellItem(g, uid){
+  const i = g.bag.findIndex(x=>x.uid===uid);
+  if (i<0) return {ok:false};
+  const it = g.bag[i];
+  g.bag.splice(i,1); g.gold += it.price;
+  return {ok:true, msg:`出售 ${it.name}，+${it.price} 金币`};
+}
+function enhanceCost(it){ return Math.round(it.price*0.6*(it.enh+1)); }
+function enhanceEquipped(g, clsId, slot){
+  const e = g.collection[clsId];
+  if (!e) return {ok:false, msg:'未解锁'};
+  const it = e.equip[slot];
+  if (!it) return {ok:false, msg:'该栏位没有装备'};
+  if (it.enh >= 20) return {ok:false, msg:'已强化至上限'};
+  const cost = enhanceCost(it);
+  if (g.gold < cost) return {ok:false, msg:'金币不足'};
+  g.gold -= cost; it.enh++;
+  const base = it.atk*4 + it.hp*0.35 + it.def*2.5 + it.crit*3 + it.eva*3;
+  it.power = Math.round(base * (1 + 0.08*it.enh));
+  return {ok:true, msg:`强化成功！+${it.enh}`};
+}
+
+// ---------- 战斗 ----------
+function buildFoes(stage){
+  const mult = Math.pow(1.115, Math.min(stage-1, 26)) * Math.pow(1.06, Math.max(0, stage-30));
+  const isBoss = stage % 5 === 0;
+  const foes = [];
+  if (isBoss){
+    foes.push(mkFoe('ogre', stage, mult, true));
+    const adds = Math.min(1 + Math.floor(stage/10), 3);
+    const pool = ['orc','troll','warlock'];
+    for (let i=0;i<adds;i++) foes.push(mkFoe(pool[ri(0,2)], stage, mult*0.85, false));
+  } else {
+    const n = Math.min(3 + Math.floor((stage-1)/3), 5);
+    const pool = stage<3 ? ['orc','orc','troll'] :
+                 stage<6 ? ['orc','troll','warlock'] : ['orc','troll','warlock','troll'];
+    for (let i=0;i<n;i++) foes.push(mkFoe(pool[ri(0,pool.length-1)], stage, mult, false));
+  }
+  return foes;
+}
+function mkFoe(kind, stage, mult, isBoss){
+  const d = FOE_DEFS[kind];
+  return { foe:true, side:1, kind, name: d.name + (isBoss?'·首领':''), icon: d.icon,
+    maxhp: Math.round(d.hp*mult), hp: Math.round(d.hp*mult), atk: d.atk*mult, def: d.def*mult,
+    eva: d.eva||0, crit: d.crit, speed: d.speed, skill: d.skill, role:'foe' };
+}
+function foesPower(stage){
+  return buildFoes(stage).reduce((s,f)=>s+Math.round(f.atk*4+f.maxhp*0.35+f.def*2.5+f.crit*3),0);
+}
+
+function buildHeroUnits(heroList, side){
+  return heroList.map(e=>{
+    const c = CLASS_MAP[e.id];
+    const s = heroStats(e);
+    return { name:e.nick || c.cls, icon:c.icon, cls:c.cls, role:c.role, skillName:c.skillName,
+             maxhp:s.maxhp, hp:s.maxhp, atk:s.atk, def:s.def, eva:s.eva, crit:s.crit,
+             speed:s.speed, side: side||0 };
+  });
+}
+
+function simulateBattle(g, stage){
+  return runBattle(buildHeroUnits(getTeam(g), 0), buildFoes(stage));
+}
+function makeSnapshot(g){
+  g = migrate(g);
+  return { team: JSON.parse(JSON.stringify(getTeam(g))), power: teamPower(g) };
+}
+function simulateArena(attackGame, defTeam){
+  return runBattle(buildHeroUnits(getTeam(attackGame), 0), buildHeroUnits(defTeam, 1));
+}
+
+function runBattle(allies, foes){
+  const units = allies.concat(foes).map((u,i)=>({ ...u, idx:i, energy:0, timer:rnd(0,0.8), shield:0, taunt:0, alive:true }));
+  const events = [];
+  let t = 0; const dt = 0.25;
+  const atkInterval = u => 2.2 / u.speed;
+
+  function deal(src, tgt, mult, bonusCrit){
+    if (tgt.eva && Math.random()*100 < tgt.eva){
+      events.push({t, k:'miss', s:src.idx, g:tgt.idx});
+      return 0;
+    }
+    let raw = src.atk * mult * rnd(0.9,1.1);
+    let crit = Math.random()*100 < (src.crit + (bonusCrit||0));
+    if (crit) raw *= 2;
+    let dmg = Math.max(1, Math.round(raw - tgt.def*0.55));
+    if (tgt.shield > 0){
+      const absorbed = Math.min(tgt.shield, dmg);
+      tgt.shield -= absorbed; dmg -= absorbed;
+    }
+    tgt.hp -= dmg;
+    events.push({t, k:'hit', s:src.idx, g:tgt.idx, d:dmg, c:crit});
+    if (tgt.hp <= 0 && tgt.alive){ tgt.alive=false; events.push({t, k:'die', g:tgt.idx}); }
+    return dmg;
+  }
+  function heal(src, tgt, mult){
+    const v = Math.round(src.atk * mult * rnd(0.95,1.1));
+    const before = tgt.hp;
+    tgt.hp = Math.min(tgt.maxhp, tgt.hp + v);
+    events.push({t, k:'heal', s:src.idx, g:tgt.idx, d:tgt.hp-before});
+  }
+  function pickTarget(src){
+    const foesAlive = units.filter(u=>u.alive && u.side!==src.side);
+    if (!foesAlive.length) return null;
+    if (src.side===1){
+      const tanks = foesAlive.filter(u=>u.role==='tank');
+      if (tanks.length && (Math.random()<0.78 || src.taunt>0)) return tanks[ri(0,tanks.length-1)];
+    }
+    return foesAlive[ri(0,foesAlive.length-1)];
+  }
+
+  let winner = -1;
+  while (t < 120){
+    t += dt;
+    for (const u of units){
+      if (!u.alive) continue;
+      if (u.taunt>0) u.taunt -= dt;
+      u.timer += dt;
+      if (u.timer >= atkInterval(u)){
+        u.timer = 0;
+        u.energy = Math.min(100, u.energy + 26);
+        const tgt = pickTarget(u);
+        if (tgt) deal(u, tgt, 1);
+      }
+      if (u.energy >= 100 && u.alive){
+        u.energy = 0;
+        events.push({t, k:'skill', s:u.idx, name:u.skillName});
+        if (u.skillName === '盾墙'){
+          u.shield = Math.round(u.maxhp*0.3);
+          u.taunt = 6;
+          units.forEach(x=>{ if(x.alive && x.side===1) x.taunt = 6; });
+          events.push({t, k:'buff', g:u.idx, name:'嘲讽！'});
+        } else if (u.skillName === '治疗术'){
+          const mates = units.filter(x=>x.alive && x.side===u.side);
+          const low = mates.sort((a,b)=>(a.hp/a.maxhp)-(b.hp/b.maxhp))[0];
+          if (low) heal(u, low, 3.6);
+        } else if (u.skillName === '烈焰风暴'){
+          units.filter(x=>x.alive && x.side!==u.side).forEach(f=>deal(u,f,1.65));
+        } else if (u.skillName === '顺劈斩'){
+          const tgt = pickTarget(u); if (tgt) deal(u, tgt, 2.5);
+        } else if (u.skillName === '暗影打击'){
+          const tgt = pickTarget(u); if (tgt) deal(u, tgt, 3.0, 35);
+        } else if (u.skill === 'bolt'){
+          const tgt = pickTarget(u); if (tgt) deal(u, tgt, 1.9);
+        } else if (u.skill === 'double'){
+          const tgt = pickTarget(u);
+          if (tgt){ deal(u, tgt, 0.65); if (tgt.alive) deal(u, tgt, 0.65); }
+        } else if (u.skill === 'smash'){
+          const tgt = pickTarget(u); if (tgt) deal(u, tgt, 1.7);
+        } else if (u.skill === 'quake'){
+          units.filter(x=>x.alive && x.side!==u.side).forEach(f=>deal(u,f,1.15));
+        }
+      }
+    }
+    if (!units.some(u=>u.alive && u.side===0)){ winner = 1; break; }
+    if (!units.some(u=>u.alive && u.side===1)){ winner = 0; break; }
+  }
+  if (winner===-1) winner = units.filter(u=>u.side===0&&u.alive).length >= units.filter(u=>u.side===1&&u.alive).length ? 0 : 1;
+
+  return { win: winner===0, time: t, events,
+    units: units.map(u=>({ idx:u.idx, name:u.name, icon:u.icon, side:u.side, maxhp:u.maxhp, hp:Math.max(0,Math.round(u.hp)) })) };
+}
+
+function stageName(stage){
+  const chapters = ['影牙森林','枯骨矿洞','哀嚎沼泽','烈日荒漠','寒冰王座'];
+  const ch = Math.floor((stage-1)/10);
+  const name = chapters[Math.min(ch, chapters.length-1)];
+  return `第${stage}关 · ${name}`;
+}
+
+if (typeof module !== 'undefined') module.exports = {CLASSES, CLASS_MAP, newGame, migrate, gachaPull, gachaTen, brkNeed, getTeam, toggleTeam, heroStats, unitPower, teamPower, levelCost, upgradeHero, renameHero, genItem, lootFor, goldFor, ticketDrops, equipItem, autoEquip, sellItem, enhanceCost, enhanceEquipped, buildFoes, foesPower, buildHeroUnits, simulateBattle, makeSnapshot, simulateArena, runBattle, stageName, RARITY, SLOT_NAMES};
+
+
+// ================= UI 部分 V2 =================
+const SAVE_KEY = 'squadRPG_save_v1';
+const AUTH_KEY = 'squadRPG_auth';
+let G = migrate(loadGame());
+let auth = null;
+let lastPulls = [];
+try { auth = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch(e){}
+
+function loadGame(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw){ const g = JSON.parse(raw); if (g) return g; }
+  } catch(e){}
+  return newGame();
+}
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch(e){} }
+function saveAuth(){ try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch(e){} }
+
+const $ = s => document.querySelector(s);
+const tabs = { adventure: $('#tab-adventure'), team: $('#tab-team'), bag: $('#tab-bag'),
+               summon: $('#tab-summon'), arena: $('#tab-arena') };
+
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>t.classList.add('show'), 10);
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, 2400);
+}
+
+async function api(path, method, body){
+  const headers = { 'Content-Type': 'application/json' };
+  if (auth && auth.token) headers['Authorization'] = 'Bearer ' + auth.token;
+  const r = await fetch(path, { method: method||'GET', headers, body: body?JSON.stringify(body):undefined });
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(data.error || ('请求失败 ' + r.status));
+  return data;
+}
+
+function fmtItem(it){
+  const parts = [];
+  if (it.atk)  parts.push(`攻+${it.atk}`);
+  if (it.hp)   parts.push(`血+${it.hp}`);
+  if (it.def)  parts.push(`防+${it.def}`);
+  if (it.crit) parts.push(`暴+${it.crit}%`);
+  if (it.eva)  parts.push(`闪+${it.eva}%`);
+  return parts.join(' ');
+}
+function starsStr(n){ return '★'.repeat(n) + '☆'.repeat(5-n); }
+
+// ---------- 顶栏 ----------
+function renderHUD(){
+  $('#hud-gold').textContent = G.gold;
+  $('#hud-power').textContent = teamPower(G);
+  $('#hud-stage').textContent = G.stage;
+  $('#hud-tickets').textContent = G.tickets;
+}
+
+// ---------- 冒险页 ----------
+function renderAdventure(){
+  const s = G.stage;
+  const foes = buildFoes(s);
+  const fp = foesPower(s);
+  const tn = getTeam(G).length;
+  $('#adv-title').textContent = stageName(s) + (s%5===0 ? ' · 👑首领战' : '');
+  $('#adv-foes').innerHTML = foes.map(f=>`<span class="foe-chip">${f.icon}${f.name}</span>`).join('');
+  $('#adv-power').innerHTML = `上阵 ${tn}/5 人 · 我方战力 <b>${teamPower(G)}</b> vs 敌方约 <b>${fp}</b>` +
+    (teamPower(G) >= fp ? ' <span class="tag win">优势</span>' : ' <span class="tag lose">劣势</span>');
+  $('#btn-sweep').style.display = s > 1 ? 'block' : 'none';
+  $('#btn-sweep').textContent = `⚡ 扫荡第${s-1}关（快速刷金币装备）`;
+}
+
+// ---------- 召唤页 ----------
+function renderSummon(){
+  $('#sum-tickets').textContent = G.tickets;
+  $('#sum-tut').style.display = G.tutGacha ? 'none' : 'block';
+  const ov = $('#sum-overview'); ov.innerHTML = '';
+  for (const c of CLASSES){
+    const e = G.collection[c.id];
+    const d = document.createElement('div');
+    if (e){
+      const need = brkNeed(e);
+      d.className = 'sum-slot';
+      d.innerHTML = `${c.icon}<b>${e.nick}</b>
+        <span class="brk">${e.awake?'🌟已觉醒':`突破 ${e.brk}/10`}</span>
+        <span class="brk-prog">${e.brk>=10?'MAX':`魂 ${e.shards}/${need}`}</span>`;
+    } else {
+      d.className = 'sum-slot locked';
+      d.innerHTML = `${c.icon}<b>？？？</b><span class="brk">未解锁</span>`;
+    }
+    ov.appendChild(d);
+  }
+  const box = $('#sum-results'); box.innerHTML = '';
+  lastPulls.forEach((r,i)=>{
+    const c = CLASS_MAP[r.id];
+    const card = document.createElement('div');
+    card.className = 'sum-card' + (r.awake ? ' awaken' : r.isNew ? ' new' : r.brkUp ? ' brk' : '');
+    card.style.animationDelay = (i*0.08)+'s';
+    let tag = r.isNew ? '<span class="sum-tag new">新英雄！</span>'
+      : r.awake ? '<span class="sum-tag awaken">觉醒！</span>'
+      : r.brkUp ? '<span class="sum-tag brk">突破！</span>' : '';
+    card.innerHTML = `<div class="sum-icon">${c.icon}</div><b>${c.cls}</b>${tag}`;
+    box.appendChild(card);
+  });
+}
+
+function doPull(n){
+  const results = [];
+  for (let i=0;i<n;i++){
+    const r = gachaPull(G);
+    if (!r.ok){ toast(r.msg); break; }
+    results.push(r);
+  }
+  if (results.length){
+    lastPulls = results;
+    const news = results.filter(r=>r.isNew).length;
+    const brks = results.filter(r=>r.brkUp).length;
+    const awakes = results.filter(r=>r.awake).length;
+    let msg = `获得 ${results.length} 个英雄`;
+    if (news) msg += `，新英雄×${news}`;
+    if (brks) msg += `，突破×${brks}`;
+    if (awakes) msg += `，🌟觉醒×${awakes}`;
+    toast(msg + '！');
+    save();
+  }
+  renderAll();
+}
+
+// ---------- 队伍页 ----------
+function renderTeam(){
+  const el = $('#team-list'); el.innerHTML = '';
+  const chips = $('#team-chips');
+  chips.innerHTML = '上阵队伍：' + (G.team.length
+    ? G.team.map(id=>`<span class="chip">${CLASS_MAP[id].icon}${G.collection[id] ? G.collection[id].nick : CLASS_MAP[id].cls}</span>`).join('')
+    : '<span class="chip none">（无人上阵）</span>') + `　<span class="chip">${G.team.length}/5</span>`;
+
+  for (const c of CLASSES){
+    const e = G.collection[c.id];
+    const card = document.createElement('div');
+    if (!e){
+      card.className = 'hero-card locked';
+      card.innerHTML = `<div class="hero-head"><span class="hero-icon">❓</span>
+        <div><b>？？？</b><span class="cls">${c.cls} · 尚未解锁，去召唤吧</span></div></div>
+        <div class="stars">生命${starsStr(c.stars.hp)} 攻击${starsStr(c.stars.atk)} 防御${starsStr(c.stars.def)}<br>
+        回避${starsStr(c.stars.eva)} 暴击${starsStr(c.stars.crit)}</div>`;
+      el.appendChild(card); continue;
+    }
+    const st = heroStats(e);
+    const cost = levelCost(e.level);
+    const inTeam = G.team.includes(c.id);
+    const need = brkNeed(e);
+    let slotsHtml = '';
+    for (const slot of ['weapon','armor','trinket']){
+      const it = e.equip[slot];
+      if (it){
+        slotsHtml += `<div class="slot" style="border-color:${it.color}">
+          <div class="slot-name">${SLOT_NAMES[slot]} ${it.name}${it.enh?` <b class="enh">+${it.enh}</b>`:''}</div>
+          <div class="slot-stat">${fmtItem(it)} · 战力${it.power}</div>
+          <button class="mini" data-enh="${c.id}|${slot}" ${it.enh>=20?'disabled':''}>🔨 ${it.enh>=20?'MAX':enhanceCost(it)+'金'}</button>
+        </div>`;
+      } else {
+        slotsHtml += `<div class="slot empty"><div class="slot-name">${SLOT_NAMES[slot]}</div><div class="slot-stat">未装备（仅限${c.cls}）</div></div>`;
+      }
+    }
+    card.innerHTML = `
+      <div class="hero-head">
+        <span class="hero-icon">${c.icon}</span>
+        <div><b>${e.nick}</b><span class="cls">${c.cls} · ${c.desc}
+          ${e.awake?' · <b class="awake-tag">🌟已觉醒</b>':''}</span></div>
+        <span class="lv">Lv.${e.level}</span>
+      </div>
+      <div class="brk-line">${e.awake?'🌟 觉醒完成'
+        : `突破 <b>${e.brk}</b>/10　魂 <b>${e.shards}</b>/${need}`}</div>
+      <div class="hero-stats">⚔️${Math.round(st.atk)} ❤️${st.maxhp} 🛡️${Math.round(st.def)} 💨${Math.round(st.eva)}% 💥${Math.round(st.crit)}% · 战力${unitPower(st)}</div>
+      <div class="slots">${slotsHtml}</div>
+      <div class="hero-btns">
+        <button class="mini" data-nick="${c.id}">✏️ 昵称</button>
+        <button class="mini" data-toggle="${c.id}">${inTeam?'⬇️ 下阵':'⬆️ 上阵'}</button>
+        <button class="lvup" data-up="${c.id}" ${G.gold<cost?'disabled':''}>⬆️ 升级（${cost}金）</button>
+      </div>`;
+    el.appendChild(card);
+  }
+  el.querySelectorAll('[data-up]').forEach(b => b.onclick = () => {
+    const r = upgradeHero(G, b.dataset.up); toast(r.msg); save(); renderAll();
+  });
+  el.querySelectorAll('[data-enh]').forEach(b => b.onclick = () => {
+    const [cid, slot] = b.dataset.enh.split('|');
+    const r = enhanceEquipped(G, cid, slot); toast(r.msg); save(); renderAll();
+  });
+  el.querySelectorAll('[data-nick]').forEach(b => b.onclick = () => {
+    const e = G.collection[b.dataset.nick];
+    const n = prompt('输入新昵称（8字以内）', e.nick);
+    if (n !== null){ renameHero(G, b.dataset.nick, n); toast('昵称已修改'); save(); renderAll(); }
+  });
+  el.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+    const r = toggleTeam(G, b.dataset.toggle); toast(r.msg); save(); renderAll();
+  });
+}
+
+// ---------- 背包页 ----------
+function renderBag(){
+  const el = $('#bag-list'); el.innerHTML = '';
+  $('#bag-count').textContent = `${G.bag.length}/80`;
+  if (!G.bag.length){ el.innerHTML = '<div class="empty-tip">背包空空，去冒险打装备吧！</div>'; return; }
+  const sorted = [...G.bag].sort((a,b)=>b.power-a.power);
+  for (const it of sorted){
+    const cm = CLASS_MAP[it.cls];
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.style.borderLeftColor = it.color;
+    row.innerHTML = `
+      <div class="item-info">
+        <b style="color:${it.color}">${it.name}${it.enh?` +${it.enh}`:''}</b>
+        <span class="item-slot">${cm?cm.icon:''}${cm?cm.cls:'通用'}·${SLOT_NAMES[it.slot]}</span>
+        <div class="item-stat">${fmtItem(it)} · 战力${it.power}</div>
+      </div>
+      <div class="item-btns">
+        <button class="mini" data-eq="${it.uid}">装备</button>
+        <button class="mini sell" data-sell="${it.uid}">卖出 ${it.price}金</button>
+      </div>`;
+    el.appendChild(row);
+  }
+  el.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => openEquipModal(+b.dataset.eq));
+  el.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
+    const r = sellItem(G, +b.dataset.sell); toast(r.msg); save(); renderAll();
+  });
+}
+
+function openEquipModal(uid){
+  const it = G.bag.find(x=>x.uid===uid); if (!it) return;
+  const cm = CLASS_MAP[it.cls];
+  const m = $('#equip-modal');
+  $('#equip-item-info').innerHTML = `<b style="color:${it.color}">${it.name}</b><br>${cm.icon}${cm.cls}专属 · ${SLOT_NAMES[it.slot]} · ${fmtItem(it)} · 战力${it.power}`;
+  const box = $('#equip-heroes'); box.innerHTML = '';
+  let any = false;
+  for (const id in G.collection){
+    const e = G.collection[id];
+    if (id !== it.cls) continue;
+    any = true;
+    const cur = e.equip[it.slot];
+    const btn = document.createElement('button');
+    btn.className = 'hero-pick';
+    btn.innerHTML = `${cm.icon} ${e.nick}<small>${cur ? `替换 ${cur.name}（战力${cur.power}）` : '空槽位'}</small>`;
+    btn.onclick = () => {
+      const r = equipItem(G, id, uid);
+      toast(r.ok ? r.msg : '装备失败');
+      m.classList.add('hidden'); save(); renderAll();
+    };
+    box.appendChild(btn);
+  }
+  if (!any) box.innerHTML = '<div class="empty-tip">你还没有解锁这个职业的英雄</div>';
+  m.classList.remove('hidden');
+}
+
+// ---------- 战斗 ----------
+let battleRAF = 0;
+function startBattle(stage, instant){
+  if (!getTeam(G).length){ toast('先上阵至少 1 名英雄'); return; }
+  const result = simulateBattle(G, stage);
+  if (instant){ finishBattle(stage, result, true); return; }
+  showBattleAnim(stage, result, stageName(stage), () => finishBattle(stage, result, false));
+}
+
+function showBattleAnim(stage, result, title, onEnd){
+  const scr = $('#battle-screen');
+  scr.classList.remove('hidden');
+  $('#battle-title').textContent = title || stageName(stage);
+  const field = $('#battle-field'); field.innerHTML = '';
+  const sprites = {};
+  const allies = result.units.filter(u=>u.side===0), foes = result.units.filter(u=>u.side===1);
+  result.units.forEach(u=>{
+    const sideArr = u.side===0 ? allies : foes;
+    const i = sideArr.findIndex(x=>x.idx===u.idx);
+    const d = document.createElement('div');
+    d.className = 'unit ' + (u.side===0?'ally':'foe');
+    d.style.left = (10 + i*(80/Math.max(sideArr.length,1)) + 40/Math.max(sideArr.length,1)) + '%';
+    d.style.top = u.side===0 ? '66%' : '14%';
+    d.innerHTML = `<div class="u-name">${u.name}</div><div class="hpbar"><div class="hpfill" style="width:100%"></div></div><div class="u-icon">${u.icon}</div>`;
+    field.appendChild(d);
+    sprites[u.idx] = { el:d, hp:u.hp, max:u.maxhp, fill:d.querySelector('.hpfill') };
+  });
+  $('#battle-log').textContent = '战斗开始！';
+  let t = 0, ei = 0, ended = false; const SPEED = 1.1, evs = result.events;
+  const end = () => { if (ended) return; ended = true; cancelAnimationFrame(battleRAF);
+    setTimeout(()=>{ $('#battle-screen').classList.add('hidden'); onEnd && onEnd(); }, 400); };
+  $('#btn-skip').onclick = () => {
+    cancelAnimationFrame(battleRAF);
+    while (ei < evs.length){ applyEvent(evs[ei], sprites); ei++; }
+    end();
+  };
+  let lastTs = 0;
+  function frame(ts){
+    if (!lastTs) lastTs = ts;
+    t += (ts - lastTs)/1000 * SPEED; lastTs = ts;
+    while (ei < evs.length && evs[ei].t <= t){ applyEvent(evs[ei], sprites); ei++; }
+    if (ei >= evs.length){ end(); return; }
+    battleRAF = requestAnimationFrame(frame);
+  }
+  battleRAF = requestAnimationFrame(frame);
+}
+
+function applyEvent(ev, sprites){
+  const s = sprites[ev.s], g = sprites[ev.g];
+  if (ev.k === 'hit' && s && g){
+    g.hp = Math.max(0, g.hp - ev.d);
+    g.fill.style.width = (g.hp/g.max*100) + '%';
+    floatText(g.el, '-'+ev.d, ev.c?'crit':'dmg');
+  } else if (ev.k === 'miss' && g){
+    floatText(g.el, '闪避', 'miss');
+  } else if (ev.k === 'heal' && g){
+    g.hp = Math.min(g.max, g.hp + ev.d);
+    g.fill.style.width = (g.hp/g.max*100) + '%';
+    floatText(g.el, '+'+ev.d, 'heal');
+  } else if (ev.k === 'die' && g){
+    g.el.classList.add('dead');
+    floatText(g.el, '☠️', 'dmg');
+  } else if (ev.k === 'skill' && s){
+    floatText(s.el, '✦'+ev.name, 'skill');
+  } else if (ev.k === 'buff' && g){
+    floatText(g.el, ev.name, 'skill');
+  }
+}
+
+function floatText(unitEl, txt, cls){
+  const f = document.createElement('div');
+  f.className = 'floater ' + cls; f.textContent = txt;
+  unitEl.appendChild(f);
+  setTimeout(()=>f.remove(), 1100);
+}
+
+function finishBattle(stage, result, instant){
+  cancelAnimationFrame(battleRAF);
+  const m = $('#result-modal');
+  $('#result-title').textContent = result.win ? '🎉 战斗胜利！' : '💀 战斗失败…';
+  $('#result-title').className = result.win ? 'win' : 'lose';
+  const box = $('#result-body'); box.innerHTML = '';
+  if (result.win){
+    const gold = goldFor(stage);
+    G.gold += gold; G.wins++;
+    if (stage >= G.stage) G.stage = stage + 1;
+    const loot = lootFor(stage, stage%5===0);
+    const tk = ticketDrops(stage, stage%5===0);
+    let extra = '';
+    if (tk > 0){ G.tickets += tk; extra = `<div class="ticket-line">🎟️ 幸运掉落 ${tk} 张召唤卷！</div>`; }
+    box.innerHTML = `<div class="gold-line">💰 获得 ${gold} 金币</div>${extra}`;
+    const lootBox = document.createElement('div'); lootBox.className = 'loot-box';
+    if (!loot.length) lootBox.innerHTML = '<div class="empty-tip">这次没有掉落装备</div>';
+    for (const it of loot){
+      const cm = CLASS_MAP[it.cls];
+      const row = document.createElement('div');
+      row.className = 'item-row'; row.style.borderLeftColor = it.color;
+      row.innerHTML = `<div class="item-info"><b style="color:${it.color}">${it.name}</b>
+        <span class="item-slot">${cm.icon}${cm.cls}·${SLOT_NAMES[it.slot]}</span>
+        <div class="item-stat">${fmtItem(it)} · 战力${it.power}</div></div>
+        <div class="item-btns"><button class="mini" data-eq="${it.uid}">装备</button>
+        <button class="mini sell" data-sell="${it.uid}">卖出</button></div>`;
+      lootBox.appendChild(row);
+    }
+    box.appendChild(lootBox);
+    G.bag.push(...loot);
+    trimBag();
+    box.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => {
+      openEquipModal(+b.dataset.eq);
+      b.closest('.item-row').remove();
+    });
+    box.querySelectorAll('[data-sell]').forEach(b => b.onclick = () => {
+      const r = sellItem(G, +b.dataset.sell); toast(r.msg);
+      b.closest('.item-row').remove(); save(); renderAll();
+    });
+  } else {
+    box.innerHTML = `<div class="empty-tip">敌方太强了！<br>回去升级英雄、突破、强化装备，或者扫荡前一关攒攒金币再来。</div>`;
+  }
+  m.classList.remove('hidden');
+  save(); renderAll();
+  if (auth) cloudSave(true);
+}
+
+function trimBag(){
+  if (G.bag.length > 80){
+    G.bag.sort((a,b)=>a.power-b.power);
+    let n = 0;
+    while (G.bag.length > 80){ G.gold += G.bag.shift().price; n++; }
+    toast(`背包已满，自动出售了 ${n} 件最低战力装备`);
+  }
+}
+
+// ---------- 竞技场 ----------
+async function renderArena(){
+  const el = $('#tab-arena');
+  if (!auth){
+    el.innerHTML = `
+      <div class="arena-login">
+        <h3>🏟️ 竞技场</h3>
+        <p class="arena-tip">注册/登录后上传队伍快照，挑战其他玩家的镜像队伍，赢取积分打榜！</p>
+        <input id="arena-name" placeholder="用户名（2-12字符）" maxlength="12">
+        <input id="arena-pw" type="password" placeholder="密码（至少4位）">
+        <button class="big-btn" id="btn-arena-login">🔑 登录</button>
+        <button class="big-btn" id="btn-arena-reg" style="background:#24405f;color:var(--txt);font-size:15px;letter-spacing:0;">✏️ 注册新账号</button>
+      </div>`;
+    $('#btn-arena-login').onclick = () => arenaAuth('login');
+    $('#btn-arena-reg').onclick = () => arenaAuth('register');
+    return;
+  }
+  el.innerHTML = `<div class="empty-tip">加载中…</div>`;
+  try {
+    const [me, oppData, board] = await Promise.all([
+      api('/api/me'), api('/api/arena/opponents'), api('/api/arena/leaderboard')]);
+    auth.user = me.user;
+    el.innerHTML = `
+      <div class="arena-head">
+        <div>👤 <b>${me.user.name}</b> · 🏆 ${me.user.points} 分 · 第 ${me.rank} 名</div>
+        <div class="arena-sub">胜 ${me.user.wins} / 负 ${me.user.losses} · 队伍战力 ${teamPower(G)} · 上阵 ${getTeam(G).length} 人</div>
+        <div class="arena-btns">
+          <button class="mini" id="btn-cloud-up">☁️ 上传存档&快照</button>
+          <button class="mini" id="btn-cloud-down">⬇️ 从云端恢复</button>
+          <button class="mini" id="btn-arena-refresh">🔄 刷新</button>
+          <button class="mini sell" id="btn-arena-logout">退出登录</button>
+        </div>
+      </div>
+      <h4 class="arena-h">⚔️ 可挑战的对手</h4>
+      <div id="opp-list"></div>
+      <h4 class="arena-h">📜 排行榜</h4>
+      <div id="board-list"></div>`;
+    const ol = $('#opp-list');
+    if (!oppData.opponents.length) ol.innerHTML = '<div class="empty-tip">暂无对手，邀请朋友一起来玩就有了！</div>';
+    oppData.opponents.forEach(o => {
+      const row = document.createElement('div');
+      row.className = 'opp-row';
+      const diff = o.power - teamPower(G);
+      row.innerHTML = `<div><b>${o.name}</b><span class="opp-sub">战力 ${o.power} · ${o.points}分</span></div>
+        <span class="tag ${diff>0?'lose':'win'}">${diff>0?'+'+diff:diff}</span>
+        <button class="mini" data-challenge="${o.id}">挑战</button>`;
+      ol.appendChild(row);
+    });
+    ol.querySelectorAll('[data-challenge]').forEach(b => b.onclick = () => doChallenge(b));
+    const bl = $('#board-list');
+    bl.innerHTML = board.list.map(x =>
+      `<div class="board-row ${x.me?'me':''}"><span class="rk">#${x.rank}</span><b>${x.name}${x.me?'（你）':''}</b>
+       <span class="opp-sub">${x.wins}胜${x.losses}负</span><span class="pts">${x.points}分</span></div>`).join('');
+    $('#btn-cloud-up').onclick = () => cloudSave(false);
+    $('#btn-cloud-down').onclick = cloudLoad;
+    $('#btn-arena-refresh').onclick = renderArena;
+    $('#btn-arena-logout').onclick = async () => {
+      try { await api('/api/logout','POST'); } catch(e){}
+      auth = null; saveAuth(); renderArena(); toast('已退出登录');
+    };
+  } catch(e){
+    el.innerHTML = `<div class="empty-tip">${e.message}<br><button class="mini" id="btn-relogin">重新登录</button></div>`;
+    const b = $('#btn-relogin'); if (b) b.onclick = () => { auth = null; saveAuth(); renderArena(); };
+  }
+}
+
+async function arenaAuth(mode){
+  const name = $('#arena-name').value.trim(), password = $('#arena-pw').value;
+  try {
+    const data = await api('/api/' + mode, 'POST', { name, password });
+    auth = { token: data.token, user: data.user };
+    saveAuth();
+    toast(mode === 'login' ? '登录成功！' : '注册成功，欢迎来到竞技场！');
+    if (mode === 'login' && data.save){
+      if (confirm('云端有旧存档，要恢复到本机吗？（取消则保留当前进度）')){
+        G = migrate(data.save); save(); renderAll();
+      }
+    }
+    renderArena();
+  } catch(e){ toast(e.message); }
+}
+
+async function cloudSave(silent){
+  try {
+    const r = await api('/api/save', 'POST', { save: G });
+    if (!silent) toast(`☁️ 已上传云端！快照战力 ${r.power}`);
+  } catch(e){ if (!silent) toast('上传失败：' + e.message); }
+}
+
+async function cloudLoad(){
+  try {
+    const r = await api('/api/save', 'GET');
+    if (!r.save) return toast('云端还没有存档');
+    if (confirm('用云端存档覆盖本机进度？')){
+      G = migrate(r.save); save(); renderAll(); toast('已从云端恢复');
+    }
+  } catch(e){ toast('恢复失败：' + e.message); }
+}
+
+async function doChallenge(btn){
+  btn.disabled = true; btn.textContent = '对战中…';
+  try {
+    const data = await api('/api/arena/challenge', 'POST', { target: btn.dataset.challenge });
+    if (auth.user) auth.user.points = data.points;
+    showBattleAnim(0, data.result, `⚔️ 挑战 ${data.defName}（战力${data.defPower}）`, () => {
+      const m = $('#result-modal');
+      $('#result-title').textContent = data.win ? '🏆 挑战胜利！' : '💀 挑战失败…';
+      $('#result-title').className = data.win ? 'win' : 'lose';
+      $('#result-body').innerHTML = `
+        <div class="gold-line">${data.win?'+'+data.delta:'+'+data.delta} 积分 · 当前 ${data.points} 分 · 排名第 ${data.rank}</div>
+        <div class="empty-tip">${data.win?'干得漂亮！继续向榜首进发！':'胜败乃兵家常事，变强后再来！'}</div>`;
+      m.classList.remove('hidden');
+    });
+  } catch(e){ toast(e.message); btn.disabled = false; btn.textContent = '挑战'; }
+}
+
+// ---------- 通用 ----------
+function renderAll(){ renderHUD(); renderAdventure(); renderSummon(); renderTeam(); renderBag(); }
+
+$('#btn-fight').onclick = () => startBattle(G.stage, false);
+$('#btn-sweep').onclick = () => startBattle(G.stage-1, true);
+$('#btn-pull-1').onclick = () => doPull(1);
+$('#btn-pull-10').onclick = () => doPull(10);
+$('#btn-auto-equip').onclick = () => {
+  const n = autoEquip(G);
+  toast(n ? `一键穿戴了 ${n} 件更强的装备！` : '没有更强的装备可穿');
+  save(); renderAll();
+};
+document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const k = b.dataset.tab;
+  for (const key in tabs) tabs[key].style.display = key===k ? 'block' : 'none';
+  if (k === 'arena') renderArena(); else renderAll();
+});
+$('#btn-reset').onclick = () => {
+  if (confirm('确定要清空存档重新开始吗？（含英雄与抽卡进度）')){
+    localStorage.removeItem(SAVE_KEY); G = newGame(); lastPulls = []; save(); renderAll(); toast('已重置');
+  }
+};
+$('#equip-modal-close').onclick = () => $('#equip-modal').classList.add('hidden');
+$('#result-close').onclick = () => { $('#result-modal').classList.add('hidden'); renderAll(); };
+
+renderAll();
+</script>
+</body>
+</html>
